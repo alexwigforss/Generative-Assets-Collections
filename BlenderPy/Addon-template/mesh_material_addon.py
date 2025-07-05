@@ -10,13 +10,26 @@ bl_info = {
 
 import bpy
 
+z_index = 1
+
+class ResetZIndex(bpy.types.Operator):
+    """Reset Z Position to 1"""
+    bl_idname = "mesh.reset_z"
+    bl_label = "Reset"
+    def execute(self, context):
+        global z_index
+        z_index = 1
+        return {'FINISHED'}
+
 class AddCubeOperator(bpy.types.Operator):
     """Add a cube into the scene"""
     bl_idname = "mesh.add_cube"
     bl_label = "Add Cube"
 
     def execute(self, context):
-        bpy.ops.mesh.primitive_cube_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0))
+        global z_index
+        bpy.ops.mesh.primitive_cube_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, z_index))
+        z_index += 2
         return {'FINISHED'}
 
 class AddMaterialOperator(bpy.types.Operator):
@@ -54,10 +67,16 @@ class SamplePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
+        # MORE Icons
+        # https://docs.blender.org/api/current/bpy_types_enum_items/icon_items.html#rna-enum-icon-items
         col.operator("mesh.add_cube", icon="MESH_CUBE")
         col.operator("mesh.add_material", icon="SHADING_RENDERED")
+        col.operator("mesh.reset_z", icon="X")
+        #bl_idname = "mesh.reset_z"
+        #bl_label = "Reset"
 
 classes = (
+        ResetZIndex,
         SamplePanel,
         AddCubeOperator,
         AddMaterialOperator,
