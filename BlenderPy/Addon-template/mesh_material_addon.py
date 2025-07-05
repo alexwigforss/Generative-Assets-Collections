@@ -72,8 +72,6 @@ class SamplePanel(bpy.types.Panel):
         col.operator("mesh.add_cube", icon="MESH_CUBE")
         col.operator("mesh.add_material", icon="SHADING_RENDERED")
         col.operator("mesh.reset_z", icon="X")
-        #bl_idname = "mesh.reset_z"
-        #bl_label = "Reset"
 
 classes = (
         ResetZIndex,
