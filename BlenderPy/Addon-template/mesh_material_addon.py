@@ -32,7 +32,7 @@ class AddMaterialOperator(bpy.types.Operator):
         mesh.materials.clear()
         mesh.materials.append(default_material)
         return {'FINISHED'}
-        n
+        
 class SamplePanel(bpy.types.Panel):
     """ Displayy panel in 3D view"""
     bl_label = "Sample Addon"
