@@ -25,12 +25,23 @@ class AddMaterialOperator(bpy.types.Operator):
     bl_label = "Add Material"
     
     def execute(self,context):
-        bpy.ops.object.material_slot_add()
-        default_material = bpy.data.materials.new(name='Sample Material')
-        default_material.use_nodes = True
-        mesh = context.object.data
-        mesh.materials.clear()
-        mesh.materials.append(default_material)
+        obj = context.object
+
+        # Create a new material with nodes
+        material = bpy.data.materials.new(name="Node Material")
+        material.use_nodes = True
+
+        # Set base color of Principled BSDF
+        principled = material.node_tree.nodes.get("Principled BSDF")
+        if principled:
+            principled.inputs["Base Color"].default_value = (0.2, 0.6, 1.0, 1.0)  # Light blue
+
+        # Assign to mesh
+        if obj.type == 'MESH':
+            mesh = obj.data
+            mesh.materials.clear()
+            mesh.materials.append(material)
+        
         return {'FINISHED'}
         
 class SamplePanel(bpy.types.Panel):
