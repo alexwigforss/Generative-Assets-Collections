@@ -13,30 +13,34 @@ import bmesh
 from mathutils import Vector
 
 class GearProperties(bpy.types.PropertyGroup):
-    radius: bpy.props.IntProperty(
+    radius: bpy.props.FloatProperty(
         name="Radius",
         description="Radius of the gear",
-        default=2,
-        min=0,
-        max=10
-    )
-'''
-bpy.props.IntProperty(
-    name='myprop',
-    description='f_u',
-    translation_context='*',
-    default=0,
-    min=-0,
-    max=100,
-    step=1,
-    options={'ANIMATABLE'},
-    override=set(),
-    tags=set(),
-    subtype='NONE',
-    update=None,
-    get=None,
-    set=None)
-'''
+        default=2.0,
+        min=0.1,
+        max=10.0
+    ) # type: ignore
+    thicknes: bpy.props.FloatProperty(
+        name="Thicknes",
+        description="Thicknes of the gear",
+        default=0.2,
+        min=0.1,
+        max=10.0
+    ) # type: ignore
+    teeth_depth: bpy.props.FloatProperty(
+        name="Teeth Depth",
+        description="Thicknes of the gear",
+        default=0.2,
+        min=0.1,
+        max=10.0
+    ) # type: ignore
+    number_of_teeth: bpy.props.IntProperty(
+        name="Teeth",
+        description="The gears number of teeth",
+        default=5,
+        min=3,
+        max=100
+    ) # type: ignore
 
 class AddGearOperator(bpy.types.Operator):
     """Add a cube into the scene"""
@@ -44,12 +48,13 @@ class AddGearOperator(bpy.types.Operator):
     bl_label = "Add Gear"
 
     def execute(self, context):
-        # Using a fixed Z index to avoid undefined variable
-        # bpy.ops.mesh.primitive_cube_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0))
+        radius = context.scene.gear_tool.radius
+        thicknes = context.scene.gear_tool.thicknes
+        nr_of_teeth = context.scene.gear_tool.number_of_teeth
         bpy.ops.mesh.primitive_cylinder_add(
-        vertices=20,
-        radius=2.0,
-        depth=0.5,
+        vertices= nr_of_teeth * 4,
+        radius=radius,
+        depth=thicknes,
         end_fill_type='NOTHING',  # 👈 This skips the caps
         location=(0.0, 0.0, 0.0),
         rotation=(0.0, 0.0, 0.0)
@@ -67,7 +72,7 @@ class SelectFacesAndScale(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='EDIT')
 
         # Get the active mesh
-        obj = bpy.context.edit_object
+        obj = context.edit_object
         me = obj.data
         bm = bmesh.from_edit_mesh(me)
 
@@ -90,18 +95,20 @@ class SelectFacesAndScale(bpy.types.Operator):
         from mathutils import Matrix
         pivot = Matrix.Translation(center)
 
+        teeth_depth = context.scene.gear_tool.teeth_depth
+
         # Apply scaling on X and Y axes only (Z remains unchanged)
         bmesh.ops.scale(
             bm,
             verts=list(selected_verts),
-            vec=(0.5, 0.5, 1.0),  # Scale X and Y inward, leave Z unchanged
+            vec=(teeth_depth, teeth_depth, 1.0),  # Scale X and Y inward, leave Z unchanged
             space=pivot
         )
 
         # Update the mesh
         bmesh.update_edit_mesh(me, loop_triangles=True)
+        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)        
         return {'FINISHED'}
-
 
 
 class GearPanel(bpy.types.Panel):
@@ -115,8 +122,11 @@ class GearPanel(bpy.types.Panel):
         layout = self.layout
         gear_props = context.scene.gear_tool
         col = layout.column(align=True)
-        col.operator("mesh.add_gear", icon="MESH_CUBE")
         col.prop(gear_props, "radius")
+        col.prop(gear_props, "thicknes")
+        col.operator("mesh.add_gear", icon="MESH_CUBE")
+        col.prop(gear_props, "number_of_teeth")
+        col.prop(gear_props, "teeth_depth")
         col.operator("mesh.scale_faces", icon="MESH_CUBE")
 
 
