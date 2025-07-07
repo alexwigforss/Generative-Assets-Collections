@@ -36,6 +36,7 @@ bpy.ops.mesh.primitive_cylinder_add(
     location=(0.0, 0.0, 0.0),
     rotation=(0.0, 0.0, 0.0)
 )
+
 # Ensure you're in Edit Mode
 bpy.ops.object.mode_set(mode='EDIT')
 
