@@ -31,14 +31,14 @@ class GearProperties(bpy.types.PropertyGroup):
     teeth_depth: bpy.props.FloatProperty(
         name="Teeth Depth",
         description="Thicknes of the gear",
-        default=0.2,
+        default=0.9,
         min=0.1,
         max=10.0
     ) # type: ignore
     number_of_teeth: bpy.props.IntProperty(
         name="Teeth",
         description="The gears number of teeth",
-        default=5,
+        default=6,
         min=3,
         max=100
     ) # type: ignore
@@ -60,6 +60,13 @@ class AddGearOperator(bpy.types.Operator):
         location=(0.0, 0.0, 0.0),
         rotation=(0.0, 0.0, 0.0)
         )
+        # Select faces (prepare for dynamic scaling)
+        bpy.ops.object.mode_set(mode='EDIT')
+        obj = context.edit_object
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+        select_every_4th_face(bm)
+
         return {'FINISHED'}
 
 
@@ -106,7 +113,7 @@ class SelectFacesAndScale(bpy.types.Operator):
         bm = bmesh.from_edit_mesh(me)
 
         # Use the helper function
-        select_every_4th_face(bm)
+        # select_every_4th_face(bm)
         # Collect all vertices from selected faces
         selected_verts = {v for f in bm.faces if f.select for v in f.verts}
         if not selected_verts:
