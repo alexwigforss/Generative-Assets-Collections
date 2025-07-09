@@ -13,6 +13,7 @@ import bmesh
 from mathutils import Vector
 
 class GearProperties(bpy.types.PropertyGroup):
+    '''Propertys for the panel'''
     radius: bpy.props.FloatProperty(
         name="Radius",
         description="Radius of the gear",
@@ -43,7 +44,7 @@ class GearProperties(bpy.types.PropertyGroup):
     ) # type: ignore
 
 class AddGearOperator(bpy.types.Operator):
-    """Add a cube into the scene"""
+    """Add a cylinder into the scene"""
     bl_idname = "mesh.add_gear"
     bl_label = "Add Gear"
 
@@ -63,7 +64,10 @@ class AddGearOperator(bpy.types.Operator):
 
 
 class SelectFacesAndScale(bpy.types.Operator):
-    """Add a cube into the scene"""
+    """Get mesh of selected cylinder
+    chose each 4th face and
+    scalle it on x,y based on teeth_depth 
+    """
     bl_idname = "mesh.scale_faces"
     bl_label = "Scale Faces"
 
@@ -122,11 +126,12 @@ class GearPanel(bpy.types.Panel):
         layout = self.layout
         gear_props = context.scene.gear_tool
         col = layout.column(align=True)
-        col.prop(gear_props, "radius")
-        col.prop(gear_props, "thicknes")
-        col.operator("mesh.add_gear", icon="MESH_CUBE")
         col.prop(gear_props, "number_of_teeth")
-        col.prop(gear_props, "teeth_depth")
+        col.prop(gear_props, "radius") # TODO Link to setter scale x,y 
+        col.prop(gear_props, "thicknes")  # TODO Link to setter scale z
+        col.operator("mesh.add_gear", icon="MESH_CUBE")
+
+        col.prop(gear_props, "teeth_depth") # TODO Link to setter
         col.operator("mesh.scale_faces", icon="MESH_CUBE")
 
 
