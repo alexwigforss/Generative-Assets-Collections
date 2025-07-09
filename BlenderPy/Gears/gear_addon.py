@@ -63,9 +63,34 @@ class AddGearOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def select_every_4th_face(bm):
+    # Deselect all
+    for f in bm.faces:
+        f.select = False
+    # Select every 4th face
+    for i, f in enumerate(bm.faces):
+        if i % 4 == 0:
+            f.select = True
+
+
+def scale_selected_faces(bm, scale_vec, pivot):
+    """Scale selected vertices in the BMesh."""
+    selected_verts = {v for f in bm.faces if f.select for v in f.verts}
+    
+    if not selected_verts:
+        return False  # Nothing to scale
+
+    bmesh.ops.scale(
+        bm,
+        verts=list(selected_verts),
+        vec=scale_vec,
+        space=pivot
+    )
+    return True
+
+
 class SelectFacesAndScale(bpy.types.Operator):
-    """Get mesh of selected cylinder
-    chose each 4th face and
+    """
     scalle it on x,y based on teeth_depth 
     """
     bl_idname = "mesh.scale_faces"
@@ -80,18 +105,14 @@ class SelectFacesAndScale(bpy.types.Operator):
         me = obj.data
         bm = bmesh.from_edit_mesh(me)
 
-        # Deselect everything first
-        for f in bm.faces:
-            f.select = False
-
-        # Select every other face
-        for i, f in enumerate(bm.faces):
-            if i % 4 == 0:
-                f.select = True
-
+        # Use the helper function
+        select_every_4th_face(bm)
         # Collect all vertices from selected faces
         selected_verts = {v for f in bm.faces if f.select for v in f.verts}
-
+        if not selected_verts:
+            self.report({'WARNING'}, "No faces selected")
+            return {'CANCELLED'}
+        
         # Compute the average center of selected vertices
         center = sum((v.co for v in selected_verts), Vector()) / len(selected_verts)
 
@@ -99,15 +120,16 @@ class SelectFacesAndScale(bpy.types.Operator):
         from mathutils import Matrix
         pivot = Matrix.Translation(center)
 
+        # Step Scale
         teeth_depth = context.scene.gear_tool.teeth_depth
+        scale_vec = (teeth_depth, teeth_depth, 1.0)
+        scaled = scale_selected_faces(bm, scale_vec, pivot)
 
-        # Apply scaling on X and Y axes only (Z remains unchanged)
-        bmesh.ops.scale(
-            bm,
-            verts=list(selected_verts),
-            vec=(teeth_depth, teeth_depth, 1.0),  # Scale X and Y inward, leave Z unchanged
-            space=pivot
-        )
+        if not scaled:
+            self.report({'WARNING'}, "Scaling failed — no vertices selected.")
+            return {'CANCELLED'}
+
+        self.report({'INFO'}, "Scaling succeded!")
 
         # Update the mesh
         bmesh.update_edit_mesh(me, loop_triangles=True)
