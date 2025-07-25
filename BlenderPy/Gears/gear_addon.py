@@ -10,9 +10,81 @@ bl_info = {
 
 import bpy
 import bmesh
-from mathutils import Vector
+from mathutils import Vector, Matrix
+
+# --- Property getter and setter must be global functions ---
+def set_z_scale(self, value):
+    obj = bpy.context.active_object
+    if obj:
+        obj.scale.z = value
+
+def get_z_scale(self):
+    obj = bpy.context.active_object
+    if obj:
+        return obj.scale.z
+    return 1.0
+
+def set_teeth_depth(self, value):
+    obj = bpy.context.active_object
+    if not obj or obj.mode != 'EDIT':
+        return
+
+    if "tooth_orig_coords" not in obj:
+        print("Inga originalkoordinater sparade.")
+        return
+    
+    me = obj.data
+    bm = bmesh.from_edit_mesh(me)
+
+    selected_verts = {v for f in bm.faces if f.select for v in f.verts}
+    if not selected_verts:
+        return
+
+    # Återställ till original
+    orig_coords = obj["tooth_orig_coords"]
+    for v in selected_verts:
+        key = str(v.index)
+        if key in orig_coords:
+            v.co = Vector(orig_coords[key])
+
+    # Skala enligt slidervärde
+    center = sum((v.co for v in selected_verts), Vector()) / len(selected_verts)
+    pivot = Matrix.Translation(center)
+    scale_vec = (value, value, 1.0)
+    scale_selected_faces(bm, scale_vec, pivot)
+
+    bmesh.update_edit_mesh(me, loop_triangles=True)
+    obj["ResTDepth"] = value
+
+
+def get_teeth_depth(self):
+    obj = bpy.context.active_object
+    return obj.get("ResTDepth", 1.0)
+
+# --- Define the custom properties ---
+bpy.types.Object.ResThick = bpy.props.FloatProperty(
+    name="Responsive Thicknes",
+    step=0.1,
+    default=1.0,
+    min=0.0,
+    max=10.0,
+    set=set_z_scale,
+    get=get_z_scale
+)
+
+bpy.types.Object.ResTDepth = bpy.props.FloatProperty(
+    name="Responsive Teeth Depth",
+    step=0.1,
+    default=1.0,
+    min=0.0,
+    max=2.0,
+    set=set_teeth_depth,
+    get=get_teeth_depth
+)
+
 
 class GearProperties(bpy.types.PropertyGroup):
+    '''Propertys for the panel'''
     radius: bpy.props.FloatProperty(
         name="Radius",
         description="Radius of the gear",
@@ -27,23 +99,16 @@ class GearProperties(bpy.types.PropertyGroup):
         min=0.1,
         max=10.0
     ) # type: ignore
-    teeth_depth: bpy.props.FloatProperty(
-        name="Teeth Depth",
-        description="Thicknes of the gear",
-        default=0.2,
-        min=0.1,
-        max=10.0
-    ) # type: ignore
     number_of_teeth: bpy.props.IntProperty(
         name="Teeth",
         description="The gears number of teeth",
-        default=5,
+        default=6,
         min=3,
         max=100
     ) # type: ignore
 
 class AddGearOperator(bpy.types.Operator):
-    """Add a cube into the scene"""
+    """Add a gear into the scene"""
     bl_idname = "mesh.add_gear"
     bl_label = "Add Gear"
 
@@ -59,56 +124,49 @@ class AddGearOperator(bpy.types.Operator):
         location=(0.0, 0.0, 0.0),
         rotation=(0.0, 0.0, 0.0)
         )
-        return {'FINISHED'}
-
-
-class SelectFacesAndScale(bpy.types.Operator):
-    """Add a cube into the scene"""
-    bl_idname = "mesh.scale_faces"
-    bl_label = "Scale Faces"
-
-    def execute(self, context):
-        # Ensure you're in Edit Mode
+        # Select faces (prepare for dynamic scaling)
         bpy.ops.object.mode_set(mode='EDIT')
-
-        # Get the active mesh
         obj = context.edit_object
         me = obj.data
         bm = bmesh.from_edit_mesh(me)
+        select_every_4th_face(bm)
 
-        # Deselect everything first
-        for f in bm.faces:
-            f.select = False
-
-        # Select every other face
-        for i, f in enumerate(bm.faces):
-            if i % 4 == 0:
-                f.select = True
-
-        # Collect all vertices from selected faces
-        selected_verts = {v for f in bm.faces if f.select for v in f.verts}
-
-        # Compute the average center of selected vertices
-        center = sum((v.co for v in selected_verts), Vector()) / len(selected_verts)
-
-        # Create a translation matrix to use as the pivot point
-        from mathutils import Matrix
-        pivot = Matrix.Translation(center)
-
-        teeth_depth = context.scene.gear_tool.teeth_depth
-
-        # Apply scaling on X and Y axes only (Z remains unchanged)
-        bmesh.ops.scale(
-            bm,
-            verts=list(selected_verts),
-            vec=(teeth_depth, teeth_depth, 1.0),  # Scale X and Y inward, leave Z unchanged
-            space=pivot
-        )
-
-        # Update the mesh
-        bmesh.update_edit_mesh(me, loop_triangles=True)
-        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)        
         return {'FINISHED'}
+
+
+def select_every_4th_face(bm):
+    # Deselect all
+    for f in bm.faces:
+        f.select = False
+    # Select every 4th face
+    for i, f in enumerate(bm.faces):
+        if i % 4 == 0:
+            f.select = True
+
+    # Spara originalkoordinater för valda vertiklar
+    orig_coords = {}
+    for v in {v for f in bm.faces if f.select for v in f.verts}:
+        orig_coords[str(v.index)] = v.co.copy()[:]
+
+    # Spara på objektet (som dict)
+    obj = bpy.context.edit_object
+    obj["tooth_orig_coords"] = orig_coords
+
+
+def scale_selected_faces(bm, scale_vec, pivot):
+    """Scale selected vertices in the BMesh."""
+    selected_verts = {v for f in bm.faces if f.select for v in f.verts}
+    
+    if not selected_verts:
+        return False
+
+    bmesh.ops.scale(
+        bm,
+        verts=list(selected_verts),
+        vec=scale_vec,
+        space=pivot
+    )
+    return True
 
 
 class GearPanel(bpy.types.Panel):
@@ -117,23 +175,28 @@ class GearPanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_options = {'HEADER_LAYOUT_EXPAND'}
+    bl_category = "Gears"
 
     def draw(self, context):
         layout = self.layout
         gear_props = context.scene.gear_tool
+        obj = context.object
         col = layout.column(align=True)
+        col.prop(gear_props, "number_of_teeth")
         col.prop(gear_props, "radius")
         col.prop(gear_props, "thicknes")
         col.operator("mesh.add_gear", icon="MESH_CUBE")
-        col.prop(gear_props, "number_of_teeth")
-        col.prop(gear_props, "teeth_depth")
-        col.operator("mesh.scale_faces", icon="MESH_CUBE")
+
+        if obj is not None:
+            layout.prop(obj, "ResThick", slider=True)
+            layout.prop(obj, "ResTDepth", slider=True)
+        else:
+            layout.label(text="No active object.")
 
 
 classes = (
     AddGearOperator,
     GearPanel,
-    SelectFacesAndScale,
 )
 
 def register():
@@ -147,6 +210,8 @@ def unregister():
         bpy.utils.unregister_class(cls)
     del bpy.types.Scene.gear_tool
     bpy.utils.unregister_class(GearProperties)
+    del bpy.types.Object.ResThick
+    del bpy.types.Object.ResTDepth
 
 if __name__ == "__main__":
     register()
