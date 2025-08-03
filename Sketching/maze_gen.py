@@ -17,18 +17,16 @@ def print_as_int(lst):
 
 # NOTE Dim must be odd number
 dim = 23
-inner_dim = dim - 2
 
+inner_dim = dim - 2
 edge =  [1 for x in range(dim)]
 test = []
 test.append(edge)
-
 for e in range(1,dim-1):
     if e % 2 == 0:
         test.append([1 if x % 2 == 0 else 0 for x in range(dim)])
     else:
         test.append([1] + [0 for x in range(1, dim -1 )] + [1])
-
 test.append(edge)
 
 def get_random_direction():
