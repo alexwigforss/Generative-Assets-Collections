@@ -13,29 +13,35 @@ import bpy
 import bmesh
 #from mathutils import Vector, Matrix
 
-# TODO cell size
-# TODO rectangular dimension intead of square
+# TODO cell size and rectangular dimensions
 # TODO differ pillars from walls
 # TODO functionality for punching holes
 
 # Properties
 class MazeProperties(bpy.types.PropertyGroup):
-    # radius: bpy.props.FloatProperty(
-    #     name="Radius",
-    #     description="Radius of the gear",
-    #     default=2.0,
-    #     min=0.1,
-    #     max=10.0
-    # ) # type: ignore
-    dimension: bpy.props.IntProperty(
-        name="Dimension",
+    cell_size: bpy.props.FloatProperty(
+        name="Cell Size",
+        description="Size of one cell",
+        default=2.0,
+        min=0.1,
+        max=10.0
+    ) # type: ignore
+    dimension_x: bpy.props.IntProperty(
+        name="Dimension X",
         description="The dimension of th array holding the maze",
         default=9,
         min=5,
         max=200,
         step=2 # TODO Restrict by any means to put an even number in here.
     )  # type: ignore
-
+    dimension_y: bpy.props.IntProperty(
+        name="Dimension_Y",
+        description="The dimension of th array holding the maze",
+        default=9,
+        min=5,
+        max=200,
+        step=2 # TODO Restrict by any means to put an even number in here.
+    )  # type: ignore
 
 #######################################################
 # INTERNALS                                           #
@@ -54,10 +60,10 @@ def get_random_direction():
         return (0, -1)
 
 
-def randomize_maze(a, d):
-    for E in range(2,d - 2):
+def randomize_maze(a, dx, dy):
+    for E in range(2,dx - 2):
         if E % 2 == 0:
-            for e in range(2,d - 2):
+            for e in range(2,dy - 2):
                 if e % 2 == 0:
                     rnd = get_random_direction()
                     a[E+rnd[0]][e+rnd[1]] = 1
@@ -90,19 +96,19 @@ class GenerateMazeOperator(bpy.types.Operator):
 
     def execute(self, context):
         # NOTE Dim must be odd number
-        dim = context.scene.maze_tool.dimension
-        inner_dim = dim - 2
-        edge =  [1 for x in range(dim)]
+        dim_x = context.scene.maze_tool.dimension_x
+        dim_y = context.scene.maze_tool.dimension_y
+        edge =  [1 for x in range(dim_y)]
         GenerateMazeOperator.main_array = []
         GenerateMazeOperator.main_array.append(edge)
-        for e in range(1,dim-1):
+        for e in range(1,dim_x-1):
             if e % 2 == 0:
-                GenerateMazeOperator.main_array.append([1 if x % 2 == 0 else 0 for x in range(dim)])
+                GenerateMazeOperator.main_array.append([1 if x % 2 == 0 else 0 for x in range(dim_y)])
             else:
-                GenerateMazeOperator.main_array.append([1] + [0 for x in range(1, dim -1 )] + [1])
+                GenerateMazeOperator.main_array.append([1] + [0 for x in range(1, dim_y -1 )] + [1])
         GenerateMazeOperator.main_array.append(edge)
 
-        GenerateMazeOperator.main_array = randomize_maze(GenerateMazeOperator.main_array, dim)
+        GenerateMazeOperator.main_array = randomize_maze(GenerateMazeOperator.main_array, dim_x, dim_y)
 
 
         # Print the second row of the maze array for debugging
@@ -118,6 +124,8 @@ class AddMazeOperator(bpy.types.Operator):
 
     def execute(self, context):
         lst = GenerateMazeOperator.main_array
+        size = context.scene.maze_tool.cell_size
+
 
         x_index = 0
         z_index = 0
@@ -126,9 +134,9 @@ class AddMazeOperator(bpy.types.Operator):
             y_index = 0
             for e in E:
                 if e == 1:
-                    bpy.ops.mesh.primitive_cube_add(size=2, enter_editmode=False, align='WORLD', location=(x_index, y_index, z_index))
-                y_index += 2
-            x_index += 2
+                    bpy.ops.mesh.primitive_cube_add(size=size, enter_editmode=False, align='WORLD', location=(x_index * size, y_index * size, size/2))
+                y_index += 1
+            x_index += 1
 
         return {'FINISHED'}
 
@@ -145,12 +153,14 @@ class MazePanel(bpy.types.Panel):
     bl_category = "Maze"
 
     def draw(self, context):
-        print('HELLO PANEL')
+        # print('HELLO PANEL')
         layout = self.layout
         maze_props = context.scene.maze_tool
         obj = context.object
         col = layout.column(align=True)
-        col.prop(maze_props, "dimension")
+        col.prop(maze_props, "cell_size")
+        col.prop(maze_props, "dimension_x")
+        col.prop(maze_props, "dimension_y")
         col.operator("mesh.gen_maze", icon="MESH_CUBE")
         col.operator("mesh.add_maze", icon="MESH_CUBE")
 
