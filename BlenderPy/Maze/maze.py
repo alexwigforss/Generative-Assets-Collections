@@ -227,14 +227,29 @@ class AddPillarMazeOperator(bpy.types.Operator):
             y_index = 0
             for e in E:
                 if e == 1:
-                    bpy.ops.mesh.primitive_cube_add(size=size, enter_editmode=False, align='WORLD', location=(x_index * size, y_index * size, size/2))
-                elif e == 2:
                     bpy.ops.mesh.primitive_cylinder_add(
                         vertices= 10,
                         radius=size/2,
                         depth=size,
                         location=(x_index * size, y_index * size, size/2),
-                        rotation=(0.0, 0.0, 0.0)
+                        rotation=(0.0, 0.0, 0.0),
+                        scale=(0.5, 0.5, 2.0)                        
+                        )
+                elif e == 2:
+                    bpy.ops.mesh.primitive_cube_add(
+                        size=size,
+                        enter_editmode=False,
+                        align='WORLD',
+                        location=(x_index * size, y_index * size, size/2),
+                        scale=(0.2, 1.5, 2.0)                        
+                        )
+                elif e == 3:
+                    bpy.ops.mesh.primitive_cube_add(
+                        size=size,
+                        enter_editmode=False,
+                        align='WORLD',
+                        location=(x_index * size, y_index * size, size/2),
+                        scale=(1.5, 0.2, 2.0)
                         )
 
                 y_index += 1
@@ -266,6 +281,7 @@ class MazePanel(bpy.types.Panel):
         col.operator("mesh.gen_maze", icon="MESH_CUBE")
         col.operator("mesh.gen_maze_pillars", icon="MESH_CUBE")
         col.operator("mesh.add_maze", icon="MESH_CUBE")
+        col.operator("mesh.add_pillar_maze", icon="MESH_CUBE")
 
         # if obj is not None:
         #     layout.prop(obj, "ResThick", slider=True)
@@ -278,6 +294,7 @@ classes = (
     GenerateMazeOperator,
     GenerateMazePillars,
     AddMazeOperator,
+    AddPillarMazeOperator,
     MazePanel,
 )
 
