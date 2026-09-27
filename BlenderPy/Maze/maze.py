@@ -13,9 +13,16 @@ import bpy
 import bmesh
 #from mathutils import Vector, Matrix
 
-# TODO cell size and rectangular dimensions
-# TODO differ pillars from walls
+# DID cell size and rectangular dimensions
+# DID calculate pillars and wall types on array
+# TODO draw pillars and walls to scene
+# NOTE Better to do this in own method after generation for readability and seperation of responsibility
+# TODO
+
+# TODO pillar radius, wall thickness, adjust walls to pillars
 # TODO functionality for punching holes
+
+# TODO Union, Remesh & Smooth
 
 # Properties
 class MazeProperties(bpy.types.PropertyGroup):
@@ -48,6 +55,39 @@ class MazeProperties(bpy.types.PropertyGroup):
 #######################################################
 
 
+def look_at(pos, dir, arr):
+    rows = len(arr)
+    cols = len(arr[0]) if rows > 0 else 0
+    x, y = pos
+
+    if dir == 0:  # up
+        if x == 0:
+            return False
+        if 0 <= y < cols:
+            return bool(arr[x-1][y])
+    elif dir == 1:  # right
+        if y == cols - 1:
+            return False
+        if 0 <= x < rows:
+            return bool(arr[x][y+1])
+    elif dir == 2:  # down
+        if x == rows - 1:
+            return False
+        if 0 <= y < cols:
+            return bool(arr[x+1][y])
+    elif dir == 3:  # left
+        if y == 0:
+            return False
+        if 0 <= x < rows:
+            return bool(arr[x][y-1])
+    return False
+
+def look_around(pos, arr):
+    neighbours = [False,False,False,False]
+    for e in range(0,4):
+        neighbours[e] = look_at(pos, e, arr)
+    return neighbours
+
 def get_random_direction():
     rand = r.randint(0,3)
     if rand == 0:
@@ -67,8 +107,6 @@ def randomize_maze(a, dx, dy):
                 if e % 2 == 0:
                     rnd = get_random_direction()
                     a[E+rnd[0]][e+rnd[1]] = 1
-                else:
-                    pass
     return a
 
 
@@ -77,8 +115,16 @@ def print_the_maze(lst):
         for e in E:
             if e == 1:
                 print('🧱', end='')
+            elif e == 2:
+                print('00', end='')
             else:
                 print('  ', end='')
+        print()
+
+def print_as_int(lst):
+    for E in lst:
+        for e in E:
+            print(e, end=' ')
         print()
 
 #######################################################
@@ -110,10 +156,40 @@ class GenerateMazeOperator(bpy.types.Operator):
 
         GenerateMazeOperator.main_array = randomize_maze(GenerateMazeOperator.main_array, dim_x, dim_y)
 
+        print("Genereted Maze")
+        print_the_maze(GenerateMazeOperator.main_array)
+        return {'FINISHED'}
 
-        # Print the second row of the maze array for debugging
-        if len(GenerateMazeOperator.main_array) > 1:
-            print("Second row:", GenerateMazeOperator.main_array[1])
+class GenerateMazePillars(bpy.types.Operator):
+    """Calculate corners and set them to pillars"""
+    bl_idname = "mesh.gen_maze_pillars"
+    bl_label = "Generate Maze Pillars"
+
+
+    def execute(self, context):
+        # NOTE Dim must be odd number
+        dim_x = context.scene.maze_tool.dimension_x
+        dim_y = context.scene.maze_tool.dimension_y
+        # edge =  [2] + [1 for x in range(dim_y)] + [2]
+        arr = GenerateMazeOperator.main_array
+        for E in range(0, dim_x):
+            for e in range(0, dim_y):
+                if arr[E][e] == 1:
+                    neighbours = look_around((E, e), arr)
+                    # Count number of True neighbors
+                    count = sum(neighbours)
+                    # Only set if exactly two neighbors
+                    if count == 2:
+                        # Pillar if left and right are 1
+                        if neighbours[1] and neighbours[3]:
+                            arr[E][e] = 2
+                        # Pillar if up and down are 1
+                        elif neighbours[0] and neighbours[2]:
+                            arr[E][e] = 3
+        GenerateMazeOperator.main_array = arr
+
+        print("Genereted Pillars")
+        print_as_int(GenerateMazeOperator.main_array)
         return {'FINISHED'}
 
 
@@ -126,15 +202,56 @@ class AddMazeOperator(bpy.types.Operator):
         lst = GenerateMazeOperator.main_array
         size = context.scene.maze_tool.cell_size
 
-
         x_index = 0
-        z_index = 0
-
         for E in lst:
             y_index = 0
             for e in E:
                 if e == 1:
                     bpy.ops.mesh.primitive_cube_add(size=size, enter_editmode=False, align='WORLD', location=(x_index * size, y_index * size, size/2))
+                y_index += 1
+            x_index += 1
+
+        return {'FINISHED'}
+
+class AddPillarMazeOperator(bpy.types.Operator):
+    """Add a maze with pillars into the scene"""
+    bl_idname = "mesh.add_pillar_maze"
+    bl_label = "Add Pillar Maze"
+
+    def execute(self, context):
+        lst = GenerateMazeOperator.main_array
+        size = context.scene.maze_tool.cell_size
+
+        x_index = 0
+        for E in lst:
+            y_index = 0
+            for e in E:
+                if e == 1:
+                    bpy.ops.mesh.primitive_cylinder_add(
+                        vertices= 10,
+                        radius=size/2,
+                        depth=size,
+                        location=(x_index * size, y_index * size, size/2),
+                        rotation=(0.0, 0.0, 0.0),
+                        scale=(0.5, 0.5, 2.0)                        
+                        )
+                elif e == 2:
+                    bpy.ops.mesh.primitive_cube_add(
+                        size=size,
+                        enter_editmode=False,
+                        align='WORLD',
+                        location=(x_index * size, y_index * size, size/2),
+                        scale=(0.2, 1.5, 2.0)                        
+                        )
+                elif e == 3:
+                    bpy.ops.mesh.primitive_cube_add(
+                        size=size,
+                        enter_editmode=False,
+                        align='WORLD',
+                        location=(x_index * size, y_index * size, size/2),
+                        scale=(1.5, 0.2, 2.0)
+                        )
+
                 y_index += 1
             x_index += 1
 
@@ -162,7 +279,9 @@ class MazePanel(bpy.types.Panel):
         col.prop(maze_props, "dimension_x")
         col.prop(maze_props, "dimension_y")
         col.operator("mesh.gen_maze", icon="MESH_CUBE")
+        col.operator("mesh.gen_maze_pillars", icon="MESH_CUBE")
         col.operator("mesh.add_maze", icon="MESH_CUBE")
+        col.operator("mesh.add_pillar_maze", icon="MESH_CUBE")
 
         # if obj is not None:
         #     layout.prop(obj, "ResThick", slider=True)
@@ -173,7 +292,9 @@ class MazePanel(bpy.types.Panel):
 
 classes = (
     GenerateMazeOperator,
+    GenerateMazePillars,
     AddMazeOperator,
+    AddPillarMazeOperator,
     MazePanel,
 )
 
