@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="297mm"
+   height="210mm"
+   viewBox="0 0 297 210"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   sodipodi:docname="rampofdeath.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.0396254"
+     inkscape:cx="393.89187"
+     inkscape:cy="400.62506"
+     inkscape:window-width="2560"
+     inkscape:window-height="1369"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Lager 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:#999999;stroke:#000000;stroke-width:1.265;stroke-opacity:1"
+       d="M 297.2545,209.96144 C 312.64607,152.5374 347.26913,-2.8389859 140.70868,3.5084574 276.76508,15.448199 327.31766,122.6177 239.52397,156.07582 184.65686,164.6055 189.83223,115.39228 209.40975,93.359286 165.69326,101.10772 170.63359,173.7635 144.09616,150.46018 127.53675,132.56925 106.06383,89.42958 94.419826,114.69635 87.358041,129.73732 90.750871,147.01777 54.688501,148.22804 24.058567,155.62749 -72.967479,65.766646 39.976547,15.846438 -74.604237,36.70756 -6.6587675,140.01713 0.25449871,210.21594 Z"
+       id="path1"
+       sodipodi:nodetypes="cccccccccc" />
+  </g>
+</svg>
