@@ -9,35 +9,48 @@ bl_info = {
 }
 
 import bpy
-
-# fields = [[[True,True,True],
-#           [True,True,True],
-#           [True,True,True]
-#           ],
-#          [[True,True,True],
-#           [True,False,True],
-#           [True,True,True]
-#           ],
-#          [[True,True,True],
-#           [True,True,True],
-#           [True,True,True]
-#           ],]
-
-# width = 5
-# height = 7
+import numpy as np
 
 def genScrape(w,h):
-    # initializes all the 10 spaces with 0’s
     a = []
-
     for e in range(h):
-        # initializes a 4 by 3 array matrix all with 0's
-        c =  [[True] * w] * w
-        a.append(c)
+        if e >= h-1:
+            a.append(np.ones((w,w)).tolist())
+        elif e == 1 or e == 0:
+            b = getFrame(w)
+            b[0][w//2] = False
+            b[w//2][0] = False
+            b[w-1][w//2] = False
+            b[w//2][w-1] = False
+            a.append(b)
+        else:
+            b = getFrame(w)
+            if e % 2 != 0:
+                b = window(w,b)
+            a.append(b)
 
     return a
 
-fields = genScrape(3,4)
+def window(w , a):
+    r = a
+    for e in range(1,w-1,2):
+        r[0][e] = False
+        r[e][0] = False
+        r[w-1][e] = False
+        r[e][w-1] = False
+    return r
+
+def getFrame(w):
+    core = np.zeros((w-2,w-2))
+    walls = np.pad(core, pad_width=1, mode="constant", constant_values=1)
+    b = walls.astype(bool)
+    return b.tolist()
+
+
+
+width = 7
+height = 7
+fields = genScrape(width,height)
 
 class AddCubesOperator(bpy.types.Operator):
     """Add a cube into the scene"""
@@ -78,7 +91,7 @@ class AddCubesModalOperator(bpy.types.Operator):
                         self._positions.append((x, y, z))
         self._index = 0
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.5, window=context.window)  # 0.3 seconds delay
+        self._timer = wm.event_timer_add(0.1, window=context.window)  # 0.3 seconds delay
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
